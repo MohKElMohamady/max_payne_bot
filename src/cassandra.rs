@@ -55,3 +55,61 @@ pub async fn init_db_and_get_cassandra_instance() -> anyhow::Result<CassandraCli
         stargate_client: (stargate_client),
     })
 }
+
+impl CassandraClient {
+    pub async fn create_tables_if_not_exists(&mut self) -> anyhow::Result<()> {
+        /* All the ddl will be done in main keyspace */
+        let query_builder = stargate_grpc::Query::builder().keyspace("main");
+
+        /* The quotes by id table will be the main table that we will be fetching the random quoets from  */
+        let quotes_by_id_table_ddl = String::from("CREATE TABLE IF NOT EXISTS quotes_by_id ")
+            + "(id int PRIMARY KEY, quote text, game text, part text, chapter text);";
+        let create_quotes_by_id_table_query = query_builder
+            .clone()
+            .query(quotes_by_id_table_ddl.as_str())
+            .build();
+        self.stargate_client
+            .execute_query(create_quotes_by_id_table_query)
+            .await?;
+        println!("Successfully created the table quotes_by_id");
+
+        /* An auxillary table will be present to save the quotes in partitions according to their games */
+        let quotes_by_id_table_ddl = String::from("CREATE TABLE IF NOT EXISTS quotes_by_game ")
+            + "(game text, quote text, part text, chapter text, PRIMARY KEY (game, quote));";
+        let create_quotes_by_game_table_query = query_builder
+            .clone()
+            .query(quotes_by_id_table_ddl.as_str())
+            .build();
+        self.stargate_client
+            .execute_query(create_quotes_by_game_table_query)
+            .await?;
+        println!("Successfully created the table quotes_by_game");
+
+        /* The table should contain the tweet_id, text and timestamp when the tweet was created */
+        let successfull_tweet_logs_ddl =
+            String::from("CREATE TABLE IF NOT EXISTS successfull_tweets_by_id ")
+                + "(tweet_id bigint PRIMARY KEY, tweet_text text, tweeted_on_timestamp bigint);";
+        let create_successfull_tweet_logs = query_builder
+            .clone()
+            .query(successfull_tweet_logs_ddl.as_str())
+            .build();
+        self.stargate_client
+            .execute_query(create_successfull_tweet_logs)
+            .await?;
+        println!("Successfully created the table successfull_tweets_by_id");
+
+        /* The table should contain the timestamp of creating the tweet as id, the text of the tweet, the status code, the failure reason and headers */
+        let unsuccessfull_tweet_logs_ddl = String::from("CREATE TABLE IF NOT EXISTS unsuccessfull_tweets_by_id ") 
+                                                                + "(tweet_attempted_at timeuuid PRIMARY KEY, text_of_tweet text, status_code int, failure_reason text, serialized_headers text);";
+        let create_unsuccessfull_tweet_logs = query_builder
+            .clone()
+            .query(unsuccessfull_tweet_logs_ddl.as_str())
+            .build();
+        self.stargate_client
+            .execute_query(create_unsuccessfull_tweet_logs)
+            .await?;
+        println!("Successfully created the table unsuccessfull_tweets_by_id");
+
+        Ok(())
+    }
+}
