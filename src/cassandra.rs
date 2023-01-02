@@ -112,4 +112,36 @@ impl CassandraClient {
 
         Ok(())
     }
+
+    pub async fn save_quote_by_id(&mut self, quote: &Quote) -> anyhow::Result<()> {
+        println!("Saving quote by id {:?}", quote);
+        let q = Query::builder()
+            .keyspace("main")
+            .query("INSERT INTO quotes_by_id (id, chapter, game, part, quote) VALUES (:id, :chapter, :game, :part, :quote)")
+            .bind_name("id", quote.id)
+            .bind_name("chapter", quote.chapter.as_str())
+            .bind_name("game", quote.game.as_str())
+            .bind_name("part", quote.part.as_str())
+            .bind_name("quote", quote.text.as_str())
+            .build();
+        self.stargate_client.execute_query(q).await?;
+
+        Ok(())
+    }
+
+    pub async fn save_quote_by_game(&mut self, quote: &Quote) -> anyhow::Result<()> {
+        println!("Saving quote by game {:?}", quote);
+        let q = Query::builder()
+            .keyspace("main")
+            .query("INSERT INTO quotes_by_game (game, quote, chapter, part) VALUES (:game, :quote, :chapter, :part)")
+            .bind_name("chapter", quote.chapter.as_str())
+            .bind_name("part", quote.part.as_str())
+            .bind_name("game", quote.game.as_str())
+            .bind_name("quote", quote.text.as_str())
+            .build();
+        self.stargate_client.execute_query(q).await?;
+
+        Ok(())
+    }
+
 }

@@ -1,10 +1,6 @@
 use crate::max_payne;
 use crate::cassandra::Quote;
-use core::num::dec2flt::parse;
 use std::error::Error;
-use std::io;
-use std::process;
-use std::str::FromStr;
 use std::env;
 
 pub async fn parse_quotes(max_payne : &mut max_payne::MaxPayneBot) -> anyhow::Result<Vec<Quote>, Box<dyn Error>> {
@@ -38,7 +34,7 @@ pub async fn parse_quotes(max_payne : &mut max_payne::MaxPayneBot) -> anyhow::Re
         // Create a quote out the parsed data and add it to the list
         let parsed_quote = Quote{id : no_quotes, text: String::from(text), game: String::from(game), part: String::from(part), chapter: String::from(chapter)};
         println!("{:?}", parsed_quote);
-        todo!("save the quote in the database so that it can be retrieved periodically from a remote database instance");
+        max_payne.save_quote(&parsed_quote).await?;
         quotes.push(parsed_quote);
         // Increment the total counter of the quotes
         no_quotes = no_quotes + 1;
