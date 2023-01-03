@@ -4,7 +4,9 @@ use stargate_grpc::client::StargateClientBuilder;
 use stargate_grpc::*;
 use std::convert::TryInto;
 use std::{env, str::FromStr};
-
+use std::time::SystemTime;
+use uuid::Uuid;
+use serde::{Serialize, Deserialize};
 #[derive(Debug)]
 pub struct Quote {
     pub id : i64,
@@ -13,20 +15,20 @@ pub struct Quote {
     pub part : String,
     pub chapter : String,
 }
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Tweet {
-    id: u64,
-    text : String
+    pub id: i64,
+    pub text : String
 }
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SuccessfulTweetStatus {
-    tweet_id: String,
-    tweet_text: String,
-    tweeted_on_timestamp: u128,
+    pub tweet_id: String,
+    pub tweet_text: String,
+    pub tweeted_on_timestamp: i64,
 }
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UnSuccessfulTweetStatus {
-    pub status_code: i8,
+    pub status_code: i64,
     pub failure_reason: String,
     pub serialized_headers: String,
 }
@@ -100,7 +102,7 @@ impl CassandraClient {
 
         /* The table should contain the timestamp of creating the tweet as id, the text of the tweet, the status code, the failure reason and headers */
         let unsuccessfull_tweet_logs_ddl = String::from("CREATE TABLE IF NOT EXISTS unsuccessfull_tweets_by_id ") 
-                                                                + "(tweet_attempted_at timeuuid PRIMARY KEY, text_of_tweet text, status_code int, failure_reason text, serialized_headers text);";
+                                                                + "(tweet_attempted_at timeuuid PRIMARY KEY, status_code int, failure_reason text, serialized_headers text);";
         let create_unsuccessfull_tweet_logs = query_builder
             .clone()
             .query(unsuccessfull_tweet_logs_ddl.as_str())
@@ -144,4 +146,39 @@ impl CassandraClient {
         Ok(())
     }
 
+    /*
+     * Analyitics of interacting with Twitter API:
+     * Everytime a tweet is successfully sent, the tweet's status and when it was tweeted will be saved in an auxillarly table to monitor the tweets
+     */
+    /* The parameter SuccessfulTweetStatus is not a reference rather ownership because it will be immediately droped after saving it in the database, hence it makes no sense to pass it as a reference */
+    pub async fn save_suc_tweet_logs(&mut self, successfull_tweet_status : &Tweet) -> anyhow::Result<()> {
+        let q = Query::builder()
+            .keyspace("main")
+            .query("INSERT INTO successfull_tweets_by_id (tweet_id , tweet_text , tweeted_on_timestamp) VALUES ( :id, :tweet_text, :tweeted_on_timestamp);")
+            .bind_name("id", successfull_tweet_status.id)
+            .bind_name("tweet_text", successfull_tweet_status.text.as_str())
+            .bind_name("tweeted_on_timestamp",Value::bigint(SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?.as_nanos() as i64))
+            .build();
+        self.stargate_client.execute_query(q).await.unwrap();
+        Ok(())
+    }
+
+    /*
+     * Similarly, When something goes wrong, the failure will be logged and saved in the database
+     */
+    /* The parameter UnSuccessfulTweetStatus is not a reference rather ownership because it will be immediately droped after saving it in the database, hence it makes no sense to pass it as a reference */
+    
+    pub async fn save_unsuc_tweet_attempt_log(&mut self, unsuccessfull_tweet_status : &UnSuccessfulTweetStatus) -> anyhow::Result<()> {
+        let some_timestamp = uuid::Timestamp::now(uuid::NoContext);
+        uuid::Uuid::new_v1(some_timestamp, &[2,0,0,1,07,25]);
+        let q = Query::builder()
+            .keyspace("main")
+            .query("INSERT INTO unsuccessfull_tweets_by_id ( tweet_attempted_at , failure_reason , status_code , serialized_headers ) VALUES ( now(), :failure_reason, :status_code , :serialized_headers);")
+            .bind_name("failure_reason", unsuccessfull_tweet_status.failure_reason.as_str())
+            .bind_name("status_code",unsuccessfull_tweet_status.status_code)
+            .bind_name("serialized_headers", unsuccessfull_tweet_status.serialized_headers.as_str())
+            .build();
+        self.stargate_client.execute_query(q).await.unwrap();
+        Ok(())
+    }
 }
