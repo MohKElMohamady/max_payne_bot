@@ -5,7 +5,6 @@ use stargate_grpc::*;
 use std::convert::TryInto;
 use std::{env, str::FromStr};
 use std::time::SystemTime;
-use uuid::Uuid;
 use serde::{Serialize, Deserialize};
 #[derive(Debug)]
 pub struct Quote {
@@ -43,7 +42,7 @@ pub async fn init_db_and_get_cassandra_instance() -> anyhow::Result<CassandraCli
     let datastax_token: String = env::var("MAX_PAYNE_BOT_DATASTAX_TOKEN")?;
 
     println!("Building up the client and connection to remote Cassandra instance");
-    let stargate_client /* : StargateClient  */= StargateClientBuilder::new()
+    let stargate_client : StargateClient = StargateClientBuilder::new()
         .uri(datastax_remote_url)?
         .auth_token(AuthToken::from_str(&datastax_token)?)
         .tls(Some(client::default_tls_config()?))
@@ -181,4 +180,24 @@ impl CassandraClient {
         self.stargate_client.execute_query(q).await.unwrap();
         Ok(())
     }
+
+    pub async fn fetch_random_quote(&mut self) -> anyhow::Result<Quote> {
+        let random_id = rand::thread_rng().gen_range(0..=255);
+        println!("Fetching the random quote with id {:?}", random_id);
+        let q = Query::builder()
+            .keyspace("main")
+            .query("SELECT quote FROM quotes_by_id WHERE id = :id")
+            .bind_name("id", random_id)
+            .build();
+        let fetched_quote : ResultSet  = self.stargate_client.execute_query(q).await?.try_into()?;
+        let mut text_of_quote : String = String::new();
+        for row in fetched_quote.rows { 
+            let (quote,) : (String,) = row.try_into()?;
+            // TODO: Check for the length of the quote and make sure if its length is less that Twitter's tweet character limit
+            text_of_quote = quote.clone();
+        }
+        println!("Successfully fetched the quote with text {:?}", text_of_quote);
+        return Ok(Quote{id : 5 ,text : String::from(text_of_quote), game : String::from(""), part : String::from(""), chapter : String::from("")})
+    }
+
 }

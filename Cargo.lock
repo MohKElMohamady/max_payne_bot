@@ -79,6 +79,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "atomic"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b88d82667eca772c4aa12f0f1348b3ae643424c8876448f3f7bd5787032e234c"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -437,6 +446,7 @@ checksum = "8168378f4e5023e7218c89c891c0fd8ecdb5e5e4f18cb78f38cf245dd021e76f"
 dependencies = [
  "block-buffer 0.10.3",
  "crypto-common",
+ "subtle",
 ]
 
 [[package]]
@@ -483,6 +493,12 @@ name = "fixedbitset"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37ab347416e802de484e4d03c7316c48f1ecb56574dfd4a46a80f173ce1de04d"
+
+[[package]]
+name = "fmt-cmp"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86b8b5e1f107ceb3395232547d8a2c48ed8bc6b0a66e3fadd2ee818b7c7d5f17"
 
 [[package]]
 name = "fnv"
@@ -659,6 +675,15 @@ checksum = "deae6d9dbb35ec2c502d62b8f7b1c000a0822c3b0794ba36b3149c0a1c840dff"
 dependencies = [
  "crypto-mac",
  "digest 0.9.0",
+]
+
+[[package]]
+name = "hmac"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
+dependencies = [
+ "digest 0.10.6",
 ]
 
 [[package]]
@@ -913,14 +938,18 @@ dependencies = [
  "base64 0.20.0",
  "csv",
  "dotenv",
+ "oauth1-request 0.6.0",
  "oauth2",
  "rand 0.8.5",
  "reqwest",
  "reqwest-oauth1",
+ "serde",
+ "serde_json",
  "stargate-grpc",
  "stargate-grpc-derive",
  "tokio",
  "tonic 0.8.3",
+ "uuid",
 ]
 
 [[package]]
@@ -1026,6 +1055,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "997e0dc99791e2deab64a6d6a499fcfd9b39044dd22db00b6e8e01bcfe946c85"
 
 [[package]]
+name = "oauth-credentials"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d6f9dee4cc95bd06fe0c1225a2b5680e0611627e1643ce78eb76daddd8dbccc"
+
+[[package]]
 name = "oauth1-request"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1034,12 +1069,30 @@ dependencies = [
  "base64 0.12.3",
  "bitflags",
  "cfg-if 0.1.10",
- "hmac",
+ "hmac 0.9.0",
  "oauth-credentials 0.1.2",
- "oauth1-request-derive",
+ "oauth1-request-derive 0.3.3",
  "percent-encoding",
  "rand 0.7.3",
- "sha-1",
+ "sha-1 0.9.8",
+]
+
+[[package]]
+name = "oauth1-request"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1338ed7922299561b8ec25bb7e987a6d10ba912e08979a04adeef3364a39139"
+dependencies = [
+ "base64 0.13.1",
+ "cfg-if 1.0.0",
+ "digest 0.10.6",
+ "fmt-cmp",
+ "hmac 0.12.1",
+ "oauth-credentials 0.3.0",
+ "oauth1-request-derive 0.5.0",
+ "percent-encoding",
+ "rand 0.8.5",
+ "sha-1 0.10.1",
 ]
 
 [[package]]
@@ -1048,7 +1101,20 @@ version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4caa51ab4d0efd92f9c7e99466b8be5423d3f710e696ca9141527277cc792500"
 dependencies = [
- "proc-macro-crate",
+ "proc-macro-crate 0.1.5",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "oauth1-request-derive"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc6ca2caf9d2501bec0b7d7896d051fe259e73eb3d2ca27d854dea4edcc52d44"
+dependencies = [
+ "proc-macro-crate 1.2.1",
+ "proc-macro-error",
  "proc-macro2",
  "quote",
  "syn",
@@ -1221,6 +1287,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d6ea3c4595b96363c13943497db34af4460fb474a95c43f4446ad341b8c9785"
 dependencies = [
  "toml",
+]
+
+[[package]]
+name = "proc-macro-crate"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eda0fc3b0fb7c975631757e14d9049da17374063edb6ebbcbc54d880d4fe94e9"
+dependencies = [
+ "once_cell",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
 ]
 
 [[package]]
@@ -1472,7 +1573,7 @@ checksum = "0860064217871f963673d31083e77c463cf813b936a6efaa08cb08749fe3d58c"
 dependencies = [
  "async-trait",
  "http",
- "oauth1-request",
+ "oauth1-request 0.3.3",
  "reqwest",
  "serde",
  "serde_urlencoded",
@@ -1638,18 +1739,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.151"
+version = "1.0.152"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97fed41fc1a24994d044e6db6935e69511a1153b52c15eb42493b26fa87feba0"
+checksum = "bb7d1f0d3021d347a83e556fc4683dea2ea09d87bccdf88ff5c12545d89d5efb"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.151"
+version = "1.0.152"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "255abe9a125a985c05190d687b320c12f9b1f0b99445e608c21ba0782c719ad8"
+checksum = "af487d118eecd09402d70a5d72551860e788df87b464af30e5ea6a38c75c541e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1699,6 +1800,17 @@ dependencies = [
  "cpufeatures",
  "digest 0.9.0",
  "opaque-debug",
+]
+
+[[package]]
+name = "sha-1"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5058ada175748e33390e40e872bd0fe59a19f265d0158daa551c5a88a76009c"
+dependencies = [
+ "cfg-if 1.0.0",
+ "cpufeatures",
+ "digest 0.10.6",
 ]
 
 [[package]]
@@ -2253,6 +2365,16 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
+]
+
+[[package]]
+name = "uuid"
+version = "1.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "422ee0de9031b5b948b97a8fc04e3aa35230001a722ddd27943e0be31564ce4c"
+dependencies = [
+ "atomic",
+ "getrandom 0.2.8",
 ]
 
 [[package]]
