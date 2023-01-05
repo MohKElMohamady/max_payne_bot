@@ -48,7 +48,51 @@ pub async fn spawn_max_payne() -> anyhow::Result<MaxPayneBot> {
 }
 
 impl MaxPayneBot {
-    
+    pub async fn tweet_a_quote(&mut self) -> anyhow::Result<()> {
+        let secrets: Secrets = Secrets::new(&self._665.consumer_key, &self._665.consumer_secret)
+            .token(&self._665.token, &self._665.token_secret);
+
+        // If we want to enter line breaks in JSON resposne bodys, new lines have to be preceeded with \\n.
+        // TODO: Figure out how to escape double quotes in JSON request bodies.
+
+        let fetched_quote = self.cassandra_client.fetch_random_quote().await?;
+
+        println!(
+            "The quote that is about to be tweeted is : {:?}",
+            fetched_quote.text
+        );
+
+        let request_body = format!("{{\"text\": \"{}\"}}", fetched_quote.text);
+
+        let reponse_from_twitter = self
+            .http_client
+            .post("https://api.twitter.com/2/tweets")
+            .header("Content-Type", "application/json")
+            .sign(secrets)
+            .body(request_body)
+            .send()
+            .await;
+        match reponse_from_twitter {
+            Ok(suc_response) => {
+                
+                if suc_response.status().is_success() {
+                    println!("Request was successfull and the quote got tweeted");
+                    let tweet_response_body = suc_response.text().await?;
+                    let tweet: Tweet = parse_tweet_from_response(tweet_response_body).await?;
+                    self.log_successfull_tweet(&tweet).await?;
+                } else {
+                    println!("Request was successfull and but the quote was not tweeted");
+                    let unsuccessfull_twitter_status : UnSuccessfulTweetStatus = parse_unsucessful_request(TwitterResponse::Response(suc_response)).await?;
+                    self.log_unsuccessfull_tweet(&unsuccessfull_twitter_status).await?;    
+                }
+            }
+            Err(unsuc_response) => {
+                // self.cassandra_client.save_unsuc_tweet_attempt_log().await?;
+            }
+        }
+        Ok(())
+    }
+
     pub async fn create_tables_if_not_exists(&mut self) -> anyhow::Result<()> {
         self.cassandra_client.create_tables_if_not_exists().await?;
         Ok(())
