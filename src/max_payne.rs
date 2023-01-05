@@ -47,6 +47,42 @@ pub async fn spawn_max_payne() -> anyhow::Result<MaxPayneBot> {
     })
 }
 
+impl MaxPayneBot {
+    
+    pub async fn create_tables_if_not_exists(&mut self) -> anyhow::Result<()> {
+        self.cassandra_client.create_tables_if_not_exists().await?;
+        Ok(())
+    }
+
+    pub async fn save_quote(&mut self, parsed_quote: &Quote) -> anyhow::Result<()> {
+        self.cassandra_client
+            .save_quote_by_id(parsed_quote)
+            .await?;
+        self.cassandra_client
+            .save_quote_by_game(parsed_quote)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn log_successfull_tweet(&mut self, tweet: &Tweet) -> anyhow::Result<()> {
+        println!(
+            "Logging the successfully tweeted quote with id {:?} and the text {:?}",
+            tweet.id, tweet.text
+        );
+        self.cassandra_client.save_suc_tweet_logs(tweet).await?;
+        Ok(())
+    }
+
+    pub async fn log_unsuccessfull_tweet(&mut self, unsuccessfull_tweet_status: &UnSuccessfulTweetStatus) -> anyhow::Result<()> {
+        println!(
+            "Logging the failed tweet attempt having the reason {:?} and with status code {:?} and headers {:?}",
+            unsuccessfull_tweet_status.failure_reason, unsuccessfull_tweet_status.status_code, unsuccessfull_tweet_status.serialized_headers
+        );
+        self.cassandra_client.save_unsuc_tweet_attempt_log(unsuccessfull_tweet_status).await.unwrap();
+        Ok(())
+    }
+}
+
 pub async fn parse_tweet_from_response(response_body: String) -> anyhow::Result<Tweet> {
     // Parse the string from json body
     let tweet_response_json_blob: Value = serde_json::from_str(&response_body)?;
