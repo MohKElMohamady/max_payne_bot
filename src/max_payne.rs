@@ -1,16 +1,11 @@
 use crate::{
     cassandra::{
-        init_db_and_get_cassandra_instance, CassandraClient, Quote, SuccessfulTweetStatus, Tweet, UnSuccessfulTweetStatus,
+        init_db_and_get_cassandra_instance, CassandraClient, Quote, Tweet, UnSuccessfulTweetStatus,
     },
-    parser,
 };
-use base64::encode;
-use oauth1_request::signature_method::hmac_sha1::HmacSha1;
-use reqwest::multipart;
-use reqwest::*;
-use reqwest_oauth1::{Client, OAuthClientProvider, Secrets, Signer};
+use reqwest_oauth1::Secrets;
 use serde_json::Value;
-use std::{borrow::Borrow, env};
+use std::env;
 pub struct MaxPayneBot {
     cassandra_client: CassandraClient,
     // http_client: reqwest_oauth1::Client<Signer<'a, Secrets<'a>, HmacSha1>,
@@ -86,7 +81,7 @@ impl MaxPayneBot {
                     self.log_unsuccessfull_tweet(&unsuccessfull_twitter_status).await?;    
                 }
             }
-            Err(unsuc_response) => {
+            Err(_unsuc_response) => {
                 // self.cassandra_client.save_unsuc_tweet_attempt_log().await?;
             }
         }

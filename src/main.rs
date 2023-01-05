@@ -3,7 +3,7 @@ pub mod max_payne;
 pub mod parser;
 use dotenv::dotenv;
 use max_payne::spawn_max_payne;
-use stargate_grpc::*;
+use std::env;
 use tokio::{time::sleep, task};
 
 #[tokio::main]
@@ -19,7 +19,8 @@ async fn main() -> anyhow::Result<()> {
         parser::parse_quotes(&mut max_payne).await.unwrap();
 
         loop {
-            sleep(tokio::time::Duration::from_secs(3600 * 3)).await;
+            let tweet_timer : u64 = env::var("TWEET_TIMER").unwrap().parse::<u64>().unwrap();
+            sleep(tokio::time::Duration::from_secs(tweet_timer)).await;
             max_payne.tweet_a_quote().await.unwrap();
         }
     }).await?;
