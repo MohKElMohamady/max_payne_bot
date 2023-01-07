@@ -18,6 +18,9 @@ async fn main() -> anyhow::Result<()> {
 
         parser::parse_quotes(&mut max_payne).await.unwrap();
 
+        // As part of immediate testing, if the bot can tweet or not, an immediate quote will be tweeted right after starting the application
+       max_payne.tweet_a_quote().await.unwrap(); 
+
         loop {
             let tweet_timer : u64 = env::var("TWEET_TIMER").unwrap().parse::<u64>().unwrap();
             sleep(tokio::time::Duration::from_secs(tweet_timer)).await;

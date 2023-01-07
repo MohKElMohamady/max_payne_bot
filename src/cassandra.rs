@@ -1,23 +1,23 @@
 use anyhow::Ok;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use stargate_grpc::client::StargateClientBuilder;
 use stargate_grpc::*;
 use std::convert::TryInto;
-use std::{env, str::FromStr};
 use std::time::SystemTime;
-use serde::{Serialize, Deserialize};
+use std::{env, str::FromStr};
 #[derive(Debug)]
 pub struct Quote {
-    pub id : i64,
-    pub text : String,
-    pub game : String,
-    pub part : String,
-    pub chapter : String,
+    pub id: i64,
+    pub text: String,
+    pub game: String,
+    pub part: String,
+    pub chapter: String,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Tweet {
     pub id: i64,
-    pub text : String
+    pub text: String,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SuccessfulTweetStatus {
@@ -42,7 +42,7 @@ pub async fn init_db_and_get_cassandra_instance() -> anyhow::Result<CassandraCli
     let datastax_token: String = env::var("MAX_PAYNE_BOT_DATASTAX_TOKEN")?;
 
     println!("Building up the client and connection to remote Cassandra instance");
-    let stargate_client : StargateClient = StargateClientBuilder::new()
+    let stargate_client: StargateClient = StargateClientBuilder::new()
         .uri(datastax_remote_url)?
         .auth_token(AuthToken::from_str(&datastax_token)?)
         .tls(Some(client::default_tls_config()?))
@@ -50,7 +50,6 @@ pub async fn init_db_and_get_cassandra_instance() -> anyhow::Result<CassandraCli
         .await?;
     println!("Building up the client and connection to remote Cassandra instance was successfull");
 
-    
     println!("Returning Result enum with Cassandra Client for Max Payne Struct");
     Ok(CassandraClient {
         stargate_client: (stargate_client),
@@ -150,7 +149,10 @@ impl CassandraClient {
      * Everytime a tweet is successfully sent, the tweet's status and when it was tweeted will be saved in an auxillarly table to monitor the tweets
      */
     /* The parameter SuccessfulTweetStatus is not a reference rather ownership because it will be immediately droped after saving it in the database, hence it makes no sense to pass it as a reference */
-    pub async fn save_suc_tweet_logs(&mut self, successfull_tweet_status : &Tweet) -> anyhow::Result<()> {
+    pub async fn save_suc_tweet_logs(
+        &mut self,
+        successfull_tweet_status: &Tweet,
+    ) -> anyhow::Result<()> {
         let q = Query::builder()
             .keyspace("main")
             .query("INSERT INTO successfull_tweets_by_id (tweet_id , tweet_text , tweeted_on_timestamp) VALUES ( :id, :tweet_text, :tweeted_on_timestamp);")
@@ -166,10 +168,13 @@ impl CassandraClient {
      * Similarly, When something goes wrong, the failure will be logged and saved in the database
      */
     /* The parameter UnSuccessfulTweetStatus is not a reference rather ownership because it will be immediately droped after saving it in the database, hence it makes no sense to pass it as a reference */
-    
-    pub async fn save_unsuc_tweet_attempt_log(&mut self, unsuccessfull_tweet_status : &UnSuccessfulTweetStatus) -> anyhow::Result<()> {
+
+    pub async fn save_unsuc_tweet_attempt_log(
+        &mut self,
+        unsuccessfull_tweet_status: &UnSuccessfulTweetStatus,
+    ) -> anyhow::Result<()> {
         let some_timestamp = uuid::Timestamp::now(uuid::NoContext);
-        uuid::Uuid::new_v1(some_timestamp, &[2,0,0,1,07,25]);
+        uuid::Uuid::new_v1(some_timestamp, &[2, 0, 0, 1, 07, 25]);
         let q = Query::builder()
             .keyspace("main")
             .query("INSERT INTO unsuccessfull_tweets_by_id ( tweet_attempted_at , failure_reason , status_code , serialized_headers ) VALUES ( now(), :failure_reason, :status_code , :serialized_headers);")
@@ -189,15 +194,33 @@ impl CassandraClient {
             .query("SELECT quote FROM quotes_by_id WHERE id = :id")
             .bind_name("id", random_id)
             .build();
-        let fetched_quote : ResultSet  = self.stargate_client.execute_query(q).await?.try_into()?;
-        let mut text_of_quote : String = String::new();
-        for row in fetched_quote.rows { 
-            let (quote,) : (String,) = row.try_into()?;
-            // TODO: Check for the length of the quote and make sure if its length is less that Twitter's tweet character limit
-            text_of_quote = quote.clone();
+        let mut lengthOfQuote: usize;
+        let mut text_of_quote: String = String::new();
+        loop {
+            let fetched_quote: ResultSet = self
+                .stargate_client
+                .execute_query(q.clone())
+                .await?
+                .try_into()?;
+            for row in fetched_quote.rows {
+                let (quote,): (String,) = row.try_into()?;
+                lengthOfQuote = quote.len();
+                text_of_quote = quote.clone();
+                if lengthOfQuote < 280 {
+                    break;
+                }
+            }
+            println!(
+                "Successfully fetched the quote with text {:?}",
+                text_of_quote
+            );
+            return Ok(Quote {
+                id: 0,
+                text: String::from(text_of_quote),
+                game: String::from(""),
+                part: String::from(""),
+                chapter: String::from(""),
+            });
         }
-        println!("Successfully fetched the quote with text {:?}", text_of_quote);
-        return Ok(Quote{id : 5 ,text : String::from(text_of_quote), game : String::from(""), part : String::from(""), chapter : String::from("")})
     }
-
 }
