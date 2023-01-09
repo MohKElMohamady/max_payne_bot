@@ -194,7 +194,7 @@ impl CassandraClient {
             .query("SELECT quote FROM quotes_by_id WHERE id = :id")
             .bind_name("id", random_id)
             .build();
-        let mut lengthOfQuote: usize;
+        let mut length_of_quote: usize;
         let mut text_of_quote: String = String::new();
         loop {
             let fetched_quote: ResultSet = self
@@ -204,9 +204,9 @@ impl CassandraClient {
                 .try_into()?;
             for row in fetched_quote.rows {
                 let (quote,): (String,) = row.try_into()?;
-                lengthOfQuote = quote.len();
+                length_of_quote = quote.len();
                 text_of_quote = quote.clone();
-                if lengthOfQuote < 280 {
+                if length_of_quote < 280 {
                     break;
                 }
             }
